@@ -8,10 +8,10 @@ contract MyToken is Initializable, ERC1155Upgradeable, OwnableUpgradeable {
     mapping(uint256 => string) private _tokenURIs;
 
     // Initialize function instead of constructor
-    function initialize(address initialOwner) public initializer {
+    function initialize(address creator) public initializer {
         __ERC1155_init("");
-        __Ownable_init(msg.sender);
-        transferOwnership(initialOwner);
+        __Ownable_init(creator);
+        transferOwnership(creator);
     }
 
     // Function to set the URI for a specific token ID
