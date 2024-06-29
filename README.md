@@ -91,3 +91,10 @@ $ forge script script/NFT.s.sol:NFTScript --rpc-url $POLYGONAPIKEY
 ```shell
  forge script script/NFT.s.sol:NFTScript --rpc-url $POLYGONAPIKEY --broadcast --verify -vvvv --sender 0xEdb8373211332CC6F141CEBB7B8587C7CFb68243 --private-key $DEV_PRIVATE_KEY
 ```
+
+
+#Remapping.txt  create and paste this in the txt
+```
+@openzeppelin/contracts/=lib/openzeppelin-contracts-upgradeable/lib/openzeppelin-contracts/contracts/
+@openzeppelin/contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts/
+```
