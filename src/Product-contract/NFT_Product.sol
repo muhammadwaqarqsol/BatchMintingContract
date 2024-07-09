@@ -8,7 +8,14 @@ import {orderTypes} from "../libraries/orderTypes.sol";
 error onlyProductOwner();
 error ExceedsAvailableProduct(uint256 available);
 error TransfersNotAllowed();
-contract MyToken is ERC1155Upgradeable, OwnableUpgradeable, EIP712Upgradeable{
+contract MyToken is 
+ERC1155Upgradeable, 
+OwnableUpgradeable, 
+EIP712Upgradeable
+{
+    //order  Types
+    using orderTypes for orderTypes.OrderItem;
+
     //total quanity for a single product
     mapping (uint256 => uint256) public total_available_product;
     
@@ -20,9 +27,10 @@ contract MyToken is ERC1155Upgradeable, OwnableUpgradeable, EIP712Upgradeable{
 
     // Initialize function instead of constructor
     function initialize(address initialOwner) public initializer {
+        __EIP712_init("Letsmove", "1");
         __ERC1155_init("");
-        __Ownable_init(initialOwner);
-        transferOwnership(initialOwner);
+       OwnableUpgradeable.__Ownable_init(initialOwner);
+       OwnableUpgradeable.transferOwnership(initialOwner);
     }
 
     // Function to set the URI for a specific token ID
@@ -71,4 +79,66 @@ contract MyToken is ERC1155Upgradeable, OwnableUpgradeable, EIP712Upgradeable{
     //     _mintBatch(to, ids, amounts, data);
     // }
 
+
+    function executeIfSignatureMatch
+    (
+        orderTypes.OrderItem calldata order
+    )
+    internal view returns(bool)
+    {
+    bytes32 eip712DomainHash=domainHash();
+    bytes32 hashStruct = generateHashForBuy(
+                 order.tokenId,
+                 order.quantity,
+                 order.data,
+                 order.nonce
+                );
+     bytes32 hash = keccak256(
+            abi.encodePacked("\x19\x01", eip712DomainHash, hashStruct)
+        );
+
+    address signer=ecrecover(hash, order.v, 
+    order.r, order.s);
+    
+    }
+
+
+   function generateHashForBuy(
+       uint tokenId,
+       uint quantity,
+       bytes memory data,
+       uint nonce
+    ) internal pure returns (bytes32) {
+        // Create a hash for the struct using the ABI-encoded parameters
+        bytes32 hashStruct = keccak256(
+            abi.encode(
+                keccak256(
+                    "orderNFT(uint tokenId,uint quantity,bytes data,uint nonce)"
+                ),
+                tokenId,
+                quantity,
+                data,
+                nonce
+            )
+        );
+
+        return hashStruct;
+    }
+
+      function domainHash() internal view returns (bytes32) {
+        // Encode the EIP-712 domain separator struct definition
+        bytes32 hash = keccak256(
+            abi.encode(
+                // First, we encode the EIP-712 domain separator struct definition
+                keccak256(
+                    "EIP712Domain(string name,string version,address verifyingContract)"
+                ),
+                keccak256(bytes("Letsmove")), // Name of the domain
+                keccak256(bytes("1")), // Version of the domain
+                address(this) // Address of the verifying contract
+            )
+        );
+        // Return the resulting hash value
+        return hash;
+    }
 }
