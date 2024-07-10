@@ -5,7 +5,7 @@ library orderTypes {
 
     struct OrderItem{
         // address nft_Owner;
-        // address nft_Buyer;
+        address nft_Buyer;
         uint256 tokenId;
         uint256 quantity;        
         bytes data;

@@ -5,9 +5,11 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/ERC1155Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/cryptography/EIP712Upgradeable.sol";
 import {orderTypes} from "../libraries/orderTypes.sol";
+
 error onlyProductOwner();
 error ExceedsAvailableProduct(uint256 available);
 error TransfersNotAllowed();
+error InValidSignature();
 contract MyToken is 
 ERC1155Upgradeable, 
 OwnableUpgradeable, 
@@ -58,6 +60,20 @@ EIP712Upgradeable
         _mint(account, id, amount, data);
 
     }
+
+     // Function to mint a new token
+    function signatureMint(orderTypes.OrderItem calldata order)
+        public
+    {
+        uint256 available = total_available_product[order.tokenId];
+
+        if (order.quantity > available) {
+            revert ExceedsAvailableProduct(available);
+        }
+        total_available_product[order.tokenId] -= order.quantity;
+        _mint(order.nft_Buyer, order.tokenId, order.quantity, order.data);
+
+    }
        // Override _beforeTokenTransfer to block transfers
     function _update(address from, address to, uint256[] memory ids, uint256[] memory values) internal virtual override {
         // Block transfers by reverting if both from and to are not zero addresses
@@ -88,6 +104,7 @@ EIP712Upgradeable
     {
     bytes32 eip712DomainHash=domainHash();
     bytes32 hashStruct = generateHashForBuy(
+                 order.nft_Buyer,
                  order.tokenId,
                  order.quantity,
                  order.data,
@@ -99,11 +116,22 @@ EIP712Upgradeable
 
     address signer=ecrecover(hash, order.v, 
     order.r, order.s);
+    if(!(signer==order.nft_Buyer)){
+        revert InValidSignature();
+    }
     
+
+      
+    if (signer == address(0)) {
+            revert InValidSignature();
+    }
+    return true;
+
     }
 
 
    function generateHashForBuy(
+       address nft_Buyer,
        uint tokenId,
        uint quantity,
        bytes memory data,
@@ -113,8 +141,9 @@ EIP712Upgradeable
         bytes32 hashStruct = keccak256(
             abi.encode(
                 keccak256(
-                    "orderNFT(uint tokenId,uint quantity,bytes data,uint nonce)"
+                    "orderProduct(address nft_Buyer,uint tokenId,uint quantity,bytes data,uint nonce)"
                 ),
+                nft_Buyer,
                 tokenId,
                 quantity,
                 data,
