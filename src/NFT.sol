@@ -104,9 +104,9 @@ contract MyToken is Initializable, ERC1155Upgradeable, OwnableUpgradeable, EIP71
         );
       address signer=ecrecover(hash,orderItem.v,orderItem.r,orderItem.s);
 
-      if(!(signer==orderItem.nft_Owner)){
-        revert InvalidSignature();
-      }
+    //   if(!(signer==orderItem.nft_Owner)){
+    //     revert InvalidSignature();
+    //   }
     
       if(signer==address(0)){
         revert InvalidSignature();
