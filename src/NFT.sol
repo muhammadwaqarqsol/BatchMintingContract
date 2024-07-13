@@ -1,18 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.20;
-
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/ERC1155Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/cryptography/EIP712Upgradeable.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {orderTypes} from "./libraries/orderTypes.sol";
-contract NFTMarket  is ERC1155Upgradeable{
-      // Mapping from token ID to its custom URI
+
+contract NFT  is ERC1155Upgradeable{
+    // Mapping from token ID to its custom URI
     mapping(uint256 => string) private _tokenURIs;
-    mapping(uint256 => uint256) public _totalmintedProduct;
 
 
         // Initialize function instead of constructor
@@ -26,16 +19,26 @@ contract NFTMarket  is ERC1155Upgradeable{
         return _tokenURIs[tokenId];
     }
 
-    // Function to mint to msg.sender and transfer to another address
-    function mintAndTransfer(uint256 id, uint256 amount, 
-    string memory newuri, bytes memory data, address _to,
-    address _creator) public {
-       require(_creator != address(0),"Has Zero Address");
-       require(_to != _creator,"Have same Address");
-        // Mint the tokens to msg.sender
-        _tokenURIs[id] = newuri;
-        _mint(msg.sender, id, amount, data);
-        // Transfer the tokens from msg.sender to the specified address
-        safeTransferFrom(msg.sender, _to, id, amount, data);
+    // Function to mint to an address and transfer to another address
+    function mintAndTransfer(
+        address _creator,
+        address _to,
+        uint256 id,
+        uint256 amount,
+        string memory _tokenURI,
+        bytes memory data
+    ) external {
+        require(_creator != address(0),"Has zero Address");
+        require(_to != address(0), "Have zero Address");
+        require(_creator != _to, "Have same address");
+
+        // Mint the tokens to the 'from' address
+        _mint(_creator, id, amount, data);
+
+        // Set the URI for the token ID
+        _tokenURIs[id] = _tokenURI;
+
+        // Transfer the tokens from 'from' to the 'to' address
+        _safeTransferFrom(_creator, _to, id, amount, data);
     }
 }
