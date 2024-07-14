@@ -68,7 +68,7 @@ contract NFTMarket is
     
 
     //mapping to check how much listed item sold
-    mapping(uint256 => uint256) private _SoldItemsCount;
+    mapping(uint256 => uint256) private SoldItemsCount;
 
 
     function directLazyMinting(
@@ -109,7 +109,7 @@ contract NFTMarket is
             revert InvalidPrice();
         }
          // Verify that the allowance meets the maker's asking price.
-        hasAllowance(msg.sender, (makerAsk.price));
+        hasAllowance(msg.sender, (makerAsk.price * takerBid.quantity));
 
 
         bool isVerified;
@@ -126,6 +126,38 @@ contract NFTMarket is
                 uint8(Action.BUY)
             );
         }
+
+        if (!isVerified) {
+            revert InValidSignature();
+        }
+
+         // Transfer the price to the maker's base account.
+        transferUSDT(
+            msg.sender,
+            makerAsk.baseAccount,
+            (makerAsk.price * takerBid.quantity)
+        );
+
+        tokenNft.mintAndTransfer(
+        makerAsk.signer,
+        takerBid.taker,
+        takerBid.tokenId,
+        takerBid.quantity,
+        takerBid.uri,
+         "0x00"
+         );
+
+        
+        SoldItemsCount[takerBid.tokenId] += takerBid.quantity;
+
+        emit TransferNft(
+            makerAsk.nftContract,
+            makerAsk.signer,
+            takerBid.taker,
+            takerBid.tokenId,
+            takerBid.price,
+            takerBid.quantity
+        );
     }
 
 
@@ -136,17 +168,19 @@ contract NFTMarket is
     ) internal view returns (bool) {
         // Calculate the EIP712 domain hash
         bytes32 eip712DomainHash = domainHash();
-        bytes32 
+        bytes32 hashStruct;
+          if (actionChoice == 0) {
             // Generate the hash for a buy order
             hashStruct = generateHashForLazyBuy(
                 maker.signer,
                 maker.nftContract,
                 maker.baseAccount,
-                maker.,
-                maker.nonce,
-                maker.price
+                maker.nftOwner,
+                maker.price,
+                maker.tokenId,
+                maker.quantity
             );
-    
+          }
         // Calculate the final hash by combining the EIP712 domain hash and the struct hash
         bytes32 hash = keccak256(
             abi.encodePacked("\x19\x01", eip712DomainHash, hashStruct)
@@ -172,19 +206,25 @@ contract NFTMarket is
         OrderTypes.LazyMakeOrder calldata maker,
         uint8 actionChoice
     ) internal view returns (bool) {
-        bytes32 hashStruct = keccak256(
+         bytes32 hashStruct;
+          if (actionChoice == 0) {
+         hashStruct = keccak256(
                 abi.encode(
                     keccak256(
-                        "AALazyListNFT(bool IsOrderAsk,address sender,address collection,address baseAccount,uint price,uint quantity)"
+                        "AALazyListNFT(bool IsOrderAsk,address sender,address collection,address baseAccount,address nftOwner,address accountOwner,uint price,uint tokenId,uint quantity)"
                     ),
                     true,
                     maker.signer,
                     maker.nftContract,
                     maker.baseAccount,
+                    maker.nftOwner,
+                    maker.accountOwner,
                     maker.price,
+                    maker.tokenId,
                     maker.quantity
                 )
             );
+            }
        
         // bytes32 structHash = keccak256(abi.encode(_MESSAGE_TYPEHASH,true,signer1,collection));
         bytes32 hash = _hashTypedDataV4(hashStruct);
@@ -209,13 +249,14 @@ contract NFTMarket is
         address _baseAccount,
         address _nftOwner,
         uint _price,
+        uint _tokenId,
         uint _quantity
     ) internal pure returns (bytes32) {
         // Create a hash for the struct using the ABI-encoded parameters
         bytes32 hashStruct = keccak256(
             abi.encode(
                 keccak256(
-                      "LazyListNFT(bool IsOrderAsk,address sender,address collection,address baseAccount,uint price,uint quantity)"
+                       "AALazyListNFT(bool IsOrderAsk,address sender,address collection,address baseAccount,address nftOwner,uint price,uint tokenId,uint quantity)"
                 ),
                 true,
                 sender,
@@ -223,6 +264,7 @@ contract NFTMarket is
                 _baseAccount,
                 _nftOwner,
                 _price,
+                _tokenId,
                 _quantity
             )
         );
@@ -247,6 +289,23 @@ contract NFTMarket is
         // Return the resulting hash value
         return hash;
     }
+
+
+    function transferUSDT(
+            address _sender,
+            address _to,
+            uint _amount
+        ) internal {
+            if (msg.sender == owner()){
+                _sender = msg.sender;
+            }
+            bool success = usdtToken.transferFrom(_sender, _to, _amount);
+
+            if (!success) {
+                revert Failed();
+            }
+        }
+
 
     function hasAllowance(
         address _approval,

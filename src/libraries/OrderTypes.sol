@@ -8,6 +8,9 @@ library OrderTypes {
         address signer; // signer of the maker order
         address baseAccount; // address for the payment
         address nftContract; // collection address
+        address accountOwner;
+        address nftOwner;
+        uint256 tokenId; // id of the token
         uint256 price; // price (used as )
         uint256 quantity;
         uint8 v; // v: parameter (27 or 28)
@@ -21,6 +24,7 @@ library OrderTypes {
         uint256 price; // final price for the purchase + tax
         string  uri;//uri for token
         uint256 quantity;
+        uint256 tokenId; // tokenId of NFT
     }
 
 }
