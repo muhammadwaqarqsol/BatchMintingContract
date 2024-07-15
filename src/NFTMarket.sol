@@ -51,6 +51,7 @@ contract NFTMarket is
     error ZeroAddress();
     error InValidSignature();
     error InSufficientAllowance(uint256 available, uint256 required);
+    error ExceedsTotalQuantityAllowed(uint256 available, uint256 sold);
     error Failed();
     error OrderExectued();
     error InvalidOwner();
@@ -68,7 +69,7 @@ contract NFTMarket is
     
 
     //mapping to check how much listed item sold
-    mapping(uint256 => uint256) private SoldItemsCount;
+    mapping(uint256 => uint256) public SoldItemsCount;
 
 
     function directLazyMinting(
@@ -88,8 +89,13 @@ contract NFTMarket is
             revert WrongOrder();
         }
 
+
+        if(!(makerAsk.tokenId == takerBid.tokenId)){
+            revert WrongOrder();
+        }
+
         // Check that the caller is the owner of the taker order.
-        if (!(msg.sender == takerBid.taker || msg.sender == owner())) {
+        if (!(msg.sender == takerBid.taker)) {
             revert UnAuthorizedOwner({
                 available: msg.sender,
                 required: takerBid.taker
@@ -110,7 +116,12 @@ contract NFTMarket is
         }
          // Verify that the allowance meets the maker's asking price.
         hasAllowance(msg.sender, (makerAsk.price * takerBid.quantity));
+        
 
+        uint256 totalSold = SoldItemsCount[takerBid.tokenId];
+        if (totalSold + takerBid.quantity > makerAsk.quantity) {
+            revert ExceedsTotalQuantityAllowed(makerAsk.quantity, totalSold);
+        }
 
         bool isVerified;
 
@@ -175,7 +186,6 @@ contract NFTMarket is
                 maker.signer,
                 maker.nftContract,
                 maker.baseAccount,
-                maker.nftOwner,
                 maker.price,
                 maker.tokenId,
                 maker.quantity
@@ -211,13 +221,12 @@ contract NFTMarket is
          hashStruct = keccak256(
                 abi.encode(
                     keccak256(
-                        "AALazyListNFT(bool IsOrderAsk,address sender,address collection,address baseAccount,address nftOwner,address accountOwner,uint price,uint tokenId,uint quantity)"
+                        "AALazyListNFT(bool IsOrderAsk,address sender,address collection,address baseAccount,address accountOwner,uint price,uint tokenId,uint quantity)"
                     ),
                     true,
                     maker.signer,
                     maker.nftContract,
                     maker.baseAccount,
-                    maker.nftOwner,
                     maker.accountOwner,
                     maker.price,
                     maker.tokenId,
@@ -247,7 +256,6 @@ contract NFTMarket is
         address sender,
         address _nftContract,
         address _baseAccount,
-        address _nftOwner,
         uint _price,
         uint _tokenId,
         uint _quantity
@@ -256,13 +264,12 @@ contract NFTMarket is
         bytes32 hashStruct = keccak256(
             abi.encode(
                 keccak256(
-                       "AALazyListNFT(bool IsOrderAsk,address sender,address collection,address baseAccount,address nftOwner,uint price,uint tokenId,uint quantity)"
+                       "LazyListNFT(bool IsOrderAsk,address sender,address collection,address baseAccount,uint price,uint tokenId,uint quantity)"
                 ),
                 true,
                 sender,
                 _nftContract,
                 _baseAccount,
-                _nftOwner,
                 _price,
                 _tokenId,
                 _quantity

@@ -5,7 +5,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC1155/ERC1155Upgradeable.sol
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/cryptography/EIP712Upgradeable.sol";
-import {orderTypes} from "../libraries/orderTypes.sol";
+// import {orderTypes} from "../libraries/orderTypes.sol";
 
 error ZeroAddress();
 error InvalidSignature();
@@ -13,7 +13,7 @@ error AlreadyExecuted();
 
 contract MyToken is Initializable, ERC1155Upgradeable, OwnableUpgradeable, EIP712Upgradeable {
     
-    using orderTypes for orderTypes.OrderItem;
+    // using orderTypes for orderTypes.OrderItem;
 
     mapping(uint256 => string) private _tokenURIs;
     mapping(address => mapping(uint256 => bool)) private _isUserClaimNonceExecuted;
@@ -46,30 +46,30 @@ contract MyToken is Initializable, ERC1155Upgradeable, OwnableUpgradeable, EIP71
         _mintBatch(to, ids, amounts, data);
     }
 
-    function executeIfSignatureMatch(orderTypes.OrderItem calldata orderItem)
-        internal
-        view
-        returns (bool)
-    {
-        if (_isUserClaimNonceExecuted[orderItem.nft_Owner][orderItem.nonce]) {
-            revert AlreadyExecuted();
-        }
+    // function executeIfSignatureMatch(orderTypes.OrderItem calldata orderItem)
+    //     internal
+    //     view
+    //     returns (bool)
+    // {
+    //     if (_isUserClaimNonceExecuted[orderItem.nft_Owner][orderItem.nonce]) {
+    //         revert AlreadyExecuted();
+    //     }
 
-        bytes32 eip712DomainHash = domainHash();
-        bytes32 hashStruct = generateHashForOrder(
-            orderItem.nft_Owner,
-            orderItem.nft_Buyer,
-            orderItem.tokenId,
-            orderItem.quantity,
-            orderItem.data,
-            orderItem.nonce
-        );
-        bytes32 hash = keccak256(
-            abi.encodePacked("\x19\x01", eip712DomainHash, hashStruct)
-        );
-        address signer = ecrecover(hash, orderItem.v, orderItem.r, orderItem.s);
-        return signer == orderItem.nft_Owner;
-    }
+    //     bytes32 eip712DomainHash = domainHash();
+    //     bytes32 hashStruct = generateHashForOrder(
+    //         orderItem.nft_Owner,
+    //         orderItem.nft_Buyer,
+    //         orderItem.tokenId,
+    //         orderItem.quantity,
+    //         orderItem.data,
+    //         orderItem.nonce
+    //     );
+    //     bytes32 hash = keccak256(
+    //         abi.encodePacked("\x19\x01", eip712DomainHash, hashStruct)
+    //     );
+    //     address signer = ecrecover(hash, orderItem.v, orderItem.r, orderItem.s);
+    //     return signer == orderItem.nft_Owner;
+    // }
 
     function domainHash() internal view returns (bytes32) {
         return keccak256(
@@ -107,9 +107,9 @@ contract MyToken is Initializable, ERC1155Upgradeable, OwnableUpgradeable, EIP71
         );
     }
 
-    function mintWithSignature(orderTypes.OrderItem calldata orderItem) external {
-        require(executeIfSignatureMatch(orderItem), "Invalid signature");
-        _isUserClaimNonceExecuted[orderItem.nft_Owner][orderItem.nonce] = true;
-        _mint(orderItem.nft_Buyer, orderItem.tokenId, orderItem.quantity, orderItem.data);
-    }
+    // function mintWithSignature(orderTypes.OrderItem calldata orderItem) external {
+    //     require(executeIfSignatureMatch(orderItem), "Invalid signature");
+    //     _isUserClaimNonceExecuted[orderItem.nft_Owner][orderItem.nonce] = true;
+    //     _mint(orderItem.nft_Buyer, orderItem.tokenId, orderItem.quantity, orderItem.data);
+    // }
 }

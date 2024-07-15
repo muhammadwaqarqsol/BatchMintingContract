@@ -4,7 +4,7 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/ERC1155Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/cryptography/EIP712Upgradeable.sol";
-import {orderTypes} from "../libraries/orderTypes.sol";
+// import {orderTypes} from "../../libraries/orderTypes.sol";
 
 error onlyProductOwner();
 error ExceedsAvailableProduct(uint256 available);
@@ -16,7 +16,7 @@ OwnableUpgradeable,
 EIP712Upgradeable
 {
     //order  Types
-    using orderTypes for orderTypes.OrderItem;
+    // using orderTypes for orderTypes.OrderItem;
 
     //total quanity for a single product
     mapping (uint256 => uint256) public total_available_product;
@@ -62,18 +62,18 @@ EIP712Upgradeable
     }
 
      // Function to mint a new token
-    function signatureMint(orderTypes.OrderItem calldata order)
-        public
-    {
-        uint256 available = total_available_product[order.tokenId];
+    // function signatureMint(orderTypes.OrderItem calldata order)
+    //     public
+    // {
+    //     uint256 available = total_available_product[order.tokenId];
 
-        if (order.quantity > available) {
-            revert ExceedsAvailableProduct(available);
-        }
-        total_available_product[order.tokenId] -= order.quantity;
-        _mint(order.nft_Buyer, order.tokenId, order.quantity, order.data);
+    //     if (order.quantity > available) {
+    //         revert ExceedsAvailableProduct(available);
+    //     }
+    //     total_available_product[order.tokenId] -= order.quantity;
+    //     _mint(order.nft_Buyer, order.tokenId, order.quantity, order.data);
 
-    }
+    // }
        // Override _beforeTokenTransfer to block transfers
     function _update(address from, address to, uint256[] memory ids, uint256[] memory values) internal virtual override {
         // Block transfers by reverting if both from and to are not zero addresses
@@ -96,38 +96,38 @@ EIP712Upgradeable
     // }
 
 
-    function executeIfSignatureMatch
-    (
-        orderTypes.OrderItem calldata order
-    )
-    internal view returns(bool)
-    {
-    bytes32 eip712DomainHash=domainHash();
-    bytes32 hashStruct = generateHashForBuy(
-                 order.nft_Buyer,
-                 order.tokenId,
-                 order.quantity,
-                 order.data,
-                 order.nonce
-                );
-     bytes32 hash = keccak256(
-            abi.encodePacked("\x19\x01", eip712DomainHash, hashStruct)
-        );
+    // function executeIfSignatureMatch
+    // (
+    //     orderTypes.OrderItem calldata order
+    // )
+    // internal view returns(bool)
+    // {
+    // bytes32 eip712DomainHash=domainHash();
+    // bytes32 hashStruct = generateHashForBuy(
+    //              order.nft_Buyer,
+    //              order.tokenId,
+    //              order.quantity,
+    //              order.data,
+    //              order.nonce
+    //             );
+    //  bytes32 hash = keccak256(
+    //         abi.encodePacked("\x19\x01", eip712DomainHash, hashStruct)
+    //     );
 
-    address signer=ecrecover(hash, order.v, 
-    order.r, order.s);
-    if(!(signer==order.nft_Buyer)){
-        revert InValidSignature();
-    }
+    // address signer=ecrecover(hash, order.v, 
+    // order.r, order.s);
+    // if(!(signer==order.nft_Buyer)){
+    //     revert InValidSignature();
+    // }
     
 
       
-    if (signer == address(0)) {
-            revert InValidSignature();
-    }
-    return true;
+    // if (signer == address(0)) {
+    //         revert InValidSignature();
+    // }
+    // return true;
 
-    }
+    // }
 
 
    function generateHashForBuy(

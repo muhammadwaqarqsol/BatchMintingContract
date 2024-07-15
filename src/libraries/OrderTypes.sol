@@ -9,7 +9,7 @@ library OrderTypes {
         address baseAccount; // address for the payment
         address nftContract; // collection address
         address accountOwner;
-        address nftOwner;
+        // address nftOwner;
         uint256 tokenId; // id of the token
         uint256 price; // price (used as )
         uint256 quantity;

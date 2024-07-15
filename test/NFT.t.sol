@@ -1,153 +1,214 @@
-// // SPDX-License-Identifier: UNLICENSED
-// pragma solidity 0.8.20;
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity ^0.8.20;
 
-// import {Test, console} from "lib/forge-std/src/Test.sol";
-// import {MyToken} from "../src/NFT.sol";
+import "lib/forge-std/src/Test.sol";
+import "src/NFT.sol";
+import "src/NFTMarket.sol";
+import "src/USDT.sol";
+import "src/libraries/OrderTypes.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-// import "src/libraries/orderTypes.sol";
+contract NFT_TEST is Test{
+      //order type for nfts
+    using OrderTypes for OrderTypes.LazyMakeOrder;
+    using OrderTypes for OrderTypes.LazyTakerOrder;
 
-// contract NFT_Test is Test {
-//   using orderTypes for orderTypes.OrderItem;
-//   MyToken public nft_contract;
+    //contract addresses
+    NFTMarket public _marketContract;
+    NFT public nft_contract;
+    USDTToken public usdt_contract;
 
-//   //key creation for nft creator {user : nft creator}
-//   uint256 internal creatorPrivateKey;
-//   address internal creator;
+    //key creation for nft creator {user : nft creator}
+    uint256 internal creatorPrivateKey;
+    address internal creator;
 
-//   //key creation for nft creator {user : first buyer / user}
-//   uint256 internal buyeronePrivateKey;
-//   address internal buyerone;
+    //key creation for nft creator {user : third party or not owner}
+    uint256 internal thirdpartyPrivateKey;
+    address internal thirdparty;
 
-//   //temperary maker order
-//   orderTypes.OrderItem public tempMakerOrder;
+    //key creation for nft creator {user : first buyer / user}
+    uint256 internal buyeronePrivateKey;
+    address internal buyerone;
+
+    //key creation for nft creator {user : second buyer / user}
+    uint256 internal secondBuyerPrivateKey;
+    address internal secondBuyer;
+
+    //temperory maker order 
+    OrderTypes.LazyMakeOrder public tempMakerOrder;
+
+    //using hash for temp order lazy
+    bytes32 public constant Lazy_MakerOrder_TYPEHASH =
+        keccak256(
+            "LazyListNFT(bool IsOrderAsk,address sender,address collection,address baseAccount,uint price,uint tokenId,uint quantity)"
+        );
+  /**
+     * @notice Setup for testing contract with all the address of nft, nft market and user {fake private key}
+     * Function be able to setup all the required stuff.
+     */
+    function setUp() public {
+       //address creation and private key for users
+
+        //maker private key
+        creatorPrivateKey = 0xA11CE;
+        //maker public address
+        creator = vm.addr(creatorPrivateKey);
+
+        //taker private key
+        buyeronePrivateKey = 0xB0B;
+        //taker public address
+        buyerone = vm.addr(buyeronePrivateKey);
+
+        //offer creator private key
+        secondBuyerPrivateKey = 0xB0A;
+        //public address
+        secondBuyer = vm.addr(secondBuyerPrivateKey);
+
+        //contract owner
+        thirdpartyPrivateKey=0xB0C;
+        //address of owner
+        thirdparty=vm.addr(thirdpartyPrivateKey);
+        //contract deployment
+        
+        _marketContract = new NFTMarket();
+
+        nft_contract = new NFT();
+
+        usdt_contract = new USDTToken();
+
+        _marketContract.initialize(address(usdt_contract));
+        //initialize the nft contract
+        nft_contract.initialize();
+    }
 
 
-//   bytes32 public constant Order_TypeHash=keccak256(
-//     "OrderItem(address nft_Owner,address nft_Buyer,uint256 tokenId,uint256 quantity,bytes data,uint256 nonce)"
-//   ) ;
 
-//   function setUp() public{
+    function test_NFTBuy_LazyMint()public{
+          //creator takes signature for listing
+          vm.prank(creator);
+          takeSignature(true,
+          creator,
+          creator,
+          address(nft_contract),
+          creator,
+          1,
+          1* 10 ** 6,
+          6,
+          Lazy_MakerOrder_TYPEHASH,
+          creatorPrivateKey);
+          vm.stopPrank();
 
-//         creatorPrivateKey = 0xA11CE;
-//         creator = vm.addr(creatorPrivateKey);
-//         vm.startPrank(creator);        
+          //buyer comes to mint usdt and approve
+          vm.startPrank(buyerone);
 
-//         nft_contract = new MyToken();
-
-//         //initialize the nft contract
-//         nft_contract.initialize(creator);
-//         vm.stopPrank();
-
-
-//         buyeronePrivateKey = 0xB0B;
-//         buyerone = vm.addr(buyeronePrivateKey);
-//     }
-
-
-
-//     //creating different product uris and then matching it to check it
-//     function test_setNFTURI() public{
-//       vm.startPrank(creator);
-//         nft_contract.setURI(1,"ABC");
-//         nft_contract.setURI(2,"DEF");
-//         assertEq(nft_contract.uri(1),"ABC");
-//         assertEq(nft_contract.uri(2),"DEF");
-//         vm.stopPrank();
-//     }
+          usdt_contract.mint(buyerone, 3);
+          usdt_contract.approve(address(_marketContract), 3 * 10 ** 6);
 
 
-//     /**
-//      * @notice create new nft as creator
-//      * Function be able to create a new nft
-//      */
-//     //creating an NFT testing nft contract function
-//     function test_createNFT() public{
-//       vm.startPrank(creator);
-//         nft_contract.setURI(1,"ABC");
-//         assertEq(nft_contract.uri(1),"ABC");
-//       vm.stopPrank();
+          // //price calculation for nft and assertions
+          // uint nftPrice = 0.2 * (10 ** 6);
+          // uint taxPrice = 0.1 * (10 ** 6);
 
-//     }
+          //created order as taker for buying and minting nft datd
+          OrderTypes.LazyTakerOrder memory lazytakerOrder = OrderTypes
+              .LazyTakerOrder(false, buyerone, 3 * (10 ** 6), "Some Uri",3,1);
+          //calling the minting function that check maker and taker calls
 
+          _marketContract.directLazyMinting(
+              lazytakerOrder,
+              tempMakerOrder,
+              false
+          );
 
+          //stopping the function of taker
+          vm.stopPrank();
 
-//     function takeSignature(  
-//        address nft_Owner,
-//         address nft_Buyer,
-//         uint256 tokenId,
-//         uint256 quantity,        
-//         bytes data,
-//         uint256 nonce,
-//         bytes32 orderhash,
-//         uint256 privatekey) public returns( uint8 v,
-//         bytes32 r,
-//         bytes32 s)
-//         {
+          assert(_marketContract.SoldItemsCount(1)==3);
+      }
+
+    function takeSignature(  
+        bool isOrderAsk,
+        address signer,
+        address baseAccount, 
+        address nftcontract,
+        address accountOwner,
+        uint256 tokenId,
+        uint256 price,
+        uint256 quantity,
+        bytes32 orderhash,
+        uint256 privatekey)
+        public returns( uint8 v,
+        bytes32 r,
+        bytes32 s)
+        {
        
-//         orderTypes.OrderItem memory makeorder=orderTypes.OrderItem(
-//           nft_Owner,
-//           nft_Buyer,
-//           tokenId,
-//           quantity,
-//           data,
-//           nonce,
-//             0,
-//             0x00,
-//             0x00
-//          );
+        OrderTypes.LazyMakeOrder memory lazymakeorder=OrderTypes.LazyMakeOrder(
+          isOrderAsk,
+          signer,
+          baseAccount,
+          nftcontract,
+          accountOwner,
+          tokenId,
+          price,
+          quantity,
+            0,
+            0x00,
+            0x00
+         );
 
-//       bytes32 digest=getTypedDataHash(makeorder,orderhash);
-//       (v,r,s)=vm.sign(privatekey,digest);
-//       makeorder.v=v;
-//       makeorder.r=r;
-//       makeorder.s=s;
-//       tempMakerOrder=makeorder;
-//     }
+      bytes32 digest=getTypedDataHash(lazymakeorder,orderhash);
+      (v,r,s)=vm.sign(privatekey,digest);
+      lazymakeorder.v=v;
+      lazymakeorder.r=r;
+      lazymakeorder.s=s;
+      tempMakerOrder=lazymakeorder;
+    }
 
-//     function getTypedDataHash(
-//         orderTypes.OrderItem memory makerorder,bytes32 orderhash
-//     ) public view returns (bytes32) {
-//         return
-//             keccak256(
-//                 abi.encodePacked(
-//                     "\x19\x01",
-//                     domainHash(),
-//                     getStructHash(makerorder,orderhash)
-//                 )
-//             );
-//     }
+    function getTypedDataHash(
+        OrderTypes.LazyMakeOrder memory lazyMakeOrder,bytes32 orderhash
+    ) public view returns (bytes32) {
+        return
+            keccak256(
+                abi.encodePacked(
+                    "\x19\x01",
+                    domainHash(),
+                    getStructHash(lazyMakeOrder,orderhash)
+                )
+            );
+    }
 
     
-//      function domainHash() internal view returns (bytes32) {
-//         bytes32 hash = keccak256(
-//             abi.encode(
-//                 keccak256(
-//                     "EIP712Domain(string name,string version,address verifyingContract)"
-//                 ),
-//                 keccak256(bytes("MarketPlace")),
-//                 keccak256(bytes("1")),
-//                 address(nft_contract)
-//             )
-//         );
-//         return hash;
-//     }
+     function domainHash() internal view returns (bytes32) {
+        bytes32 hash = keccak256(
+            abi.encode(
+                keccak256(
+                    "EIP712Domain(string name,string version,address verifyingContract)"
+                ),
+                keccak256(bytes("MarketPlace")),
+                keccak256(bytes("1")),
+                address(_marketContract)
+            )
+        );
+        return hash;
+    }
 
   
-//     function getStructHash(
-//         orderTypes.OrderItem memory makeorder,bytes32 orderhash
-//     ) internal pure returns (bytes32) {
-//         return
-//             keccak256(
-//                 abi.encode(
-//                     orderhash,
-//                     makeorder.nft_Owner,
-//         makeorder.nft_Buyer,
-//         makeorder.tokenId,
-//         makeorder.quantity,        
-//         makeorder.data,
-//         makeorder.nonce)
-//             );
-//     }
+    function getStructHash(
+        OrderTypes.LazyMakeOrder memory lazymakeorder,bytes32 orderhash
+    ) internal pure returns (bytes32) {
+        return
+            keccak256(
+                abi.encode(
+                    orderhash,
+                    lazymakeorder.isOrderAsk,
+                    lazymakeorder.signer,
+                    lazymakeorder.nftContract,
+                    lazymakeorder.baseAccount,
+                    lazymakeorder.price,
+                    lazymakeorder.tokenId,
+                    lazymakeorder.quantity
+                )
+            );
+    }
+}
 
-
-// }
