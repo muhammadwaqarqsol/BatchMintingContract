@@ -105,14 +105,9 @@ contract NFT_TEST is Test{
           usdt_contract.approve(address(_marketContract), 3 * 10 ** 6);
 
 
-          // //price calculation for nft and assertions
-          // uint nftPrice = 0.2 * (10 ** 6);
-          // uint taxPrice = 0.1 * (10 ** 6);
-
-          //created order as taker for buying and minting nft datd
+      
           OrderTypes.LazyTakerOrder memory lazytakerOrder = OrderTypes
               .LazyTakerOrder(false, buyerone, 3 * (10 ** 6), "Some Uri",3,1);
-          //calling the minting function that check maker and taker calls
 
           _marketContract.directLazyMinting(
               lazytakerOrder,
@@ -120,10 +115,34 @@ contract NFT_TEST is Test{
               false
           );
 
-          //stopping the function of taker
           vm.stopPrank();
 
           assert(_marketContract.SoldItemsCount(1)==3);
+        vm.startPrank(buyerone);
+
+        usdt_contract.mint(buyerone, 3);
+        usdt_contract.approve(address(_marketContract), 3 * 10 ** 6);
+
+        _marketContract.directLazyMinting(
+              lazytakerOrder,
+              tempMakerOrder,
+              false
+          );
+          vm.stopPrank();
+
+        assert(_marketContract.SoldItemsCount(1)==6);
+
+         vm.startPrank(buyerone);
+
+        usdt_contract.mint(buyerone, 3);
+        usdt_contract.approve(address(_marketContract), 3 * 10 ** 6);
+        vm.expectRevert(abi.encodeWithSelector(NFTMarket.ExceedsTotalQuantityAllowed.selector,6,6));
+        _marketContract.directLazyMinting(
+              lazytakerOrder,
+              tempMakerOrder,
+              false
+          );
+          vm.stopPrank();
       }
 
     function takeSignature(  
